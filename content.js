@@ -197,6 +197,9 @@
     filteredList.forEach((item) => {
       const row = document.createElement('label');
       row.className = 'yb-item';
+      if (selected.has(item.src)) {
+        row.classList.add('yb-checked');
+      }
 
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
@@ -267,13 +270,14 @@
         width: 360px;
         max-height: 70vh;
         padding: 12px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-        border-radius: 12px;
-        background: rgba(15, 23, 42, 0.95);
+        box-shadow: 0 16px 36px rgba(0,0,0,0.4);
+        border-radius: 14px;
+        background: linear-gradient(160deg, #0f172a 0%, #0b1224 100%);
+        border: 1px solid rgba(34, 211, 238, 0.15);
         color: #e2e8f0;
         font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
         z-index: 2147483647;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(10px);
         display: none;
         box-sizing: border-box;
       }
@@ -292,7 +296,7 @@
       #${PANEL_ID} p {
         margin: 0 0 10px;
         font-size: 12px;
-        color: #cbd5e1;
+        color: #c7d2fe;
       }
       #${PANEL_ID} button {
         border: none;
@@ -323,7 +327,7 @@
       #${BTN_REFRESH_ID}, #${BTN_SELECT_ID} {
         padding: 6px 10px;
         border-radius: 8px;
-        background: #1f2a44;
+        background: #122033;
         color: #e2e8f0;
         font-size: 12px;
       }
@@ -331,7 +335,7 @@
       #${BTN_ORIENT_H_ID}, #${BTN_ORIENT_V_ID} {
         padding: 6px 10px;
         border-radius: 8px;
-        background: #1f2a44;
+        background: #122033;
         color: #e2e8f0;
         font-size: 12px;
       }
@@ -359,7 +363,7 @@
         border: 1px solid #1e293b;
         border-radius: 10px;
         padding: 8px;
-        background: rgba(15,23,42,0.7);
+        background: rgba(12,18,32,0.85);
       }
       #${LIST_ID} .yb-item {
         display: grid;
@@ -368,9 +372,14 @@
         align-items: center;
         padding: 6px;
         border-radius: 8px;
-        transition: background 120ms ease;
+        transition: background 120ms ease, border 120ms ease;
+        border: 1px solid transparent;
       }
       #${LIST_ID} .yb-item:hover { background: rgba(255,255,255,0.05); }
+      #${LIST_ID} .yb-item.yb-checked {
+        background: rgba(34, 211, 238, 0.12);
+        border-color: rgba(34, 211, 238, 0.35);
+      }
       #${LIST_ID} img {
         width: 60px;
         height: 60px;
@@ -407,7 +416,7 @@
         color: #0b1224;
         font-weight: 700;
       }
-      #${BTN_DOWNLOAD_ID} { background: #334155; color: #e2e8f0; }
+      #${BTN_DOWNLOAD_ID} { background: #1f2937; color: #e2e8f0; border: 1px solid #22d3ee33; }
       #${STATUS_ID} {
         grid-column: span 2;
         margin: 4px 0 0;
@@ -496,6 +505,10 @@
           selected.add(target.dataset.src);
         } else {
           selected.delete(target.dataset.src);
+        }
+        const row = target.closest('.yb-item');
+        if (row) {
+          row.classList.toggle('yb-checked', target.checked);
         }
       }
       if (selected.size === filteredList.length) {
