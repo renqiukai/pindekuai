@@ -7,7 +7,10 @@
     "service_worker": "background.js"
   },
   "permissions": ["activeTab", "downloads", "scripting"],
-  "host_permissions": ["https://www.yinban.com/*"],
+  "host_permissions": [
+    "https://www.yinban.com/*",
+    "*://*.pid505st.cc/*"
+  ],
   "action": {
     "default_title": "吉他谱拼接",
     "default_popup": "popup.html"

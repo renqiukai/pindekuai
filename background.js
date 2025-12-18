@@ -1,11 +1,32 @@
+const DEFAULT_BASE = "pindekuai";
+
 const sanitizeFileName = (text) =>
-  (text || "yinban")
+  (text || DEFAULT_BASE)
     .replace(/[\\/:*?"<>|]+/g, "_")
     .trim()
-    .slice(0, 80) || "yinban";
+    .slice(0, 80) || DEFAULT_BASE;
+
+const deriveFileName = (url, fallbackBase, idx, ext = "png") => {
+  let base = "";
+  try {
+    const { pathname } = new URL(url);
+    base = pathname.split("/").filter(Boolean).pop() || "";
+  } catch {
+    base = "";
+  }
+  base = sanitizeFileName(base);
+  if (!base) {
+    const safeFallback = sanitizeFileName(fallbackBase);
+    base =
+      idx === undefined || idx === null
+        ? safeFallback
+        : `${safeFallback}-${idx + 1}`;
+  }
+  return `${DEFAULT_BASE}/${base}${base.includes(".") ? "" : `.${ext}`}`;
+};
 
 const fetchBitmap = async (url) => {
-  const res = await fetch(url, { credentials: "include" });
+  const res = await fetch(url, { credentials: "omit" });
   if (!res.ok) {
     throw new Error(`加载失败: ${res.status} ${res.statusText}`);
   }
@@ -82,7 +103,7 @@ const blobToDataUrl = (blob) =>
   });
 
 const downloadBlob = async (blob, pageTitle) => {
-  const fileName = `yinban/${sanitizeFileName(pageTitle)}.png`;
+  const fileName = `${DEFAULT_BASE}/${sanitizeFileName(pageTitle)}.png`;
   let url;
 
   const canObjectUrl =
@@ -103,7 +124,7 @@ const downloadBlob = async (blob, pageTitle) => {
   await chrome.downloads.download({
     url,
     filename: fileName,
-    saveAs: true
+    saveAs: false
   });
 
   if (canObjectUrl && url.startsWith("blob:")) {
@@ -148,12 +169,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!images?.length) {
           throw new Error("未收到图片列表");
         }
-        const base = sanitizeFileName(pageTitle);
         await Promise.all(
           images.map((img, idx) =>
             chrome.downloads.download({
               url: img.src,
-              filename: `yinban/${base}-${idx + 1}.png`,
+              filename: deriveFileName(img.src, pageTitle, idx),
               saveAs: false
             })
           )

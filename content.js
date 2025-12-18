@@ -1,5 +1,6 @@
 (() => {
   const MIN_DIMENSION = 200;
+  const DEFAULT_BASE = 'pindekuai';
   const PANEL_ID = '__yinban_float_panel__';
   const BTN_MERGE_ID = '__yinban_merge_btn__';
   const BTN_DOWNLOAD_ID = '__yinban_download_btn__';
@@ -21,10 +22,29 @@
   let filterMaxKB = 200;
 
   const sanitizeFileName = (text) =>
-    (text || 'yinban')
+    (text || DEFAULT_BASE)
       .replace(/[\\/:*?"<>|]+/g, '_')
       .trim()
-      .slice(0, 80) || 'yinban';
+      .slice(0, 80) || DEFAULT_BASE;
+
+  const deriveFileName = (url, fallbackBase, idx, ext = 'png') => {
+    let base = '';
+    try {
+      const { pathname } = new URL(url);
+      base = pathname.split('/').filter(Boolean).pop() || '';
+    } catch {
+      base = '';
+    }
+    base = sanitizeFileName(base);
+    if (!base) {
+      const safeFallback = sanitizeFileName(fallbackBase);
+      base =
+        idx === undefined || idx === null
+          ? safeFallback
+          : `${safeFallback}-${idx + 1}`;
+    }
+    return `${DEFAULT_BASE}/${base}${base.includes('.') ? '' : `.${ext}`}`;
+  };
 
   const formatBytes = (bytes) => {
     if (!bytes || Number.isNaN(bytes)) return '未知';
@@ -74,7 +94,7 @@
   };
 
   const fetchBitmap = async (url) => {
-    const res = await fetch(url, { credentials: 'include' });
+    const res = await fetch(url, { credentials: 'omit' });
     if (!res.ok) {
       throw new Error(`加载失败: ${res.status} ${res.statusText}`);
     }
@@ -153,7 +173,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${sanitizeFileName(pageTitle)}.png`;
+    a.download = `${DEFAULT_BASE}/${sanitizeFileName(pageTitle)}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -164,7 +184,7 @@
     imgs.forEach((img, idx) => {
       const a = document.createElement('a');
       a.href = img.src;
-      a.download = `${sanitizeFileName(pageTitle)}-${idx + 1}.png`;
+      a.download = deriveFileName(img.src, pageTitle, idx);
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -355,7 +375,7 @@
       }
       .yb-active {
         background: linear-gradient(135deg, #0ea5e9, #22d3ee);
-        color: #0b1224 !important;
+        color: #c7d2fe !important;
       }
       #${LIST_ID} {
         max-height: 40vh;
@@ -532,7 +552,7 @@
         try {
           const resp = await chrome.runtime.sendMessage({
             type: 'downloadImages',
-            payload: { images: chosen, pageTitle: document.title || 'yinban' },
+            payload: { images: chosen, pageTitle: document.title || DEFAULT_BASE },
           });
           if (!resp?.ok) {
             throw new Error(resp?.error || '下载失败');
@@ -544,7 +564,7 @@
             msg.includes('message port closed') ||
             msg.includes('Extension context invalidated');
           if (needFallback) {
-            downloadOriginalsLocally(chosen, document.title || 'yinban');
+            downloadOriginalsLocally(chosen, document.title || DEFAULT_BASE);
             setStatus('已触发下载（本地触发）');
           } else {
             throw err;
@@ -573,7 +593,7 @@
             type: 'mergeAndDownload',
             payload: {
               images: chosen,
-              pageTitle: document.title || 'yinban',
+              pageTitle: document.title || DEFAULT_BASE,
               orientation,
             },
           });
@@ -589,7 +609,7 @@
           if (needFallback) {
             setStatus('后台异常，改为本地拼接...', true);
             const blob = await mergeImagesLocally(chosen, orientation);
-            downloadMergedLocally(blob, document.title || 'yinban');
+            downloadMergedLocally(blob, document.title || DEFAULT_BASE);
             setStatus('完成，已触发下载（本地拼接）');
           } else {
             throw err;
@@ -646,7 +666,7 @@
     if (message && message.type === 'collectImages') {
       sendResponse({
         images: collectImages(),
-        pageTitle: document.title || 'yinban',
+        pageTitle: document.title || DEFAULT_BASE,
       });
     }
   });
