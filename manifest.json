@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "拼接下载",
+  "description": "在页面抓取当前可见图片并拼接成一张图后下载。",
+  "version": "0.1.0",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["activeTab", "downloads", "scripting"],
+  "host_permissions": ["https://www.yinban.com/*"],
+  "action": {
+    "default_title": "吉他谱拼接",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.yinban.com/*", "*://yinban.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
