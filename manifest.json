@@ -8,8 +8,7 @@
   },
   "permissions": ["activeTab", "downloads", "scripting"],
   "host_permissions": [
-    "https://www.yinban.com/*",
-    "*://*.pid505st.cc/*"
+    "<all_urls>"
   ],
   "action": {
     "default_title": "吉他谱拼接",
