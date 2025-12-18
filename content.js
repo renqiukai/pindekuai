@@ -1,6 +1,7 @@
 (() => {
   const MIN_DIMENSION = 200;
   const DEFAULT_BASE = 'pindekuai';
+  const PAGE_HOST = location.hostname || DEFAULT_BASE;
   const PANEL_ID = '__yinban_float_panel__';
   const BTN_MERGE_ID = '__yinban_merge_btn__';
   const BTN_DOWNLOAD_ID = '__yinban_download_btn__';
@@ -27,14 +28,24 @@
       .trim()
       .slice(0, 80) || DEFAULT_BASE;
 
-  const deriveFileName = (url, fallbackBase, idx, ext = 'png') => {
+  const deriveFileName = (
+    url,
+    fallbackBase,
+    idx,
+    ext = 'png',
+    fallbackHost = PAGE_HOST
+  ) => {
     let base = '';
+    let host = fallbackHost;
+
     try {
-      const { pathname } = new URL(url);
+      const { pathname, hostname } = new URL(url);
       base = pathname.split('/').filter(Boolean).pop() || '';
+      host = hostname || host;
     } catch {
-      base = '';
+      // ignore
     }
+    const safeHost = sanitizeFileName(host || fallbackHost || DEFAULT_BASE);
     base = sanitizeFileName(base);
     if (!base) {
       const safeFallback = sanitizeFileName(fallbackBase);
@@ -43,7 +54,9 @@
           ? safeFallback
           : `${safeFallback}-${idx + 1}`;
     }
-    return `${DEFAULT_BASE}/${base}${base.includes('.') ? '' : `.${ext}`}`;
+    return `${DEFAULT_BASE}/${safeHost}/${base}${
+      base.includes('.') ? '' : `.${ext}`
+    }`;
   };
 
   const formatBytes = (bytes) => {
@@ -173,7 +186,9 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${DEFAULT_BASE}/${sanitizeFileName(pageTitle)}.png`;
+    a.download = `${DEFAULT_BASE}/${sanitizeFileName(
+      PAGE_HOST
+    )}/${sanitizeFileName(pageTitle)}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -184,7 +199,7 @@
     imgs.forEach((img, idx) => {
       const a = document.createElement('a');
       a.href = img.src;
-      a.download = deriveFileName(img.src, pageTitle, idx);
+      a.download = deriveFileName(img.src, pageTitle, idx, 'png', PAGE_HOST);
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -552,7 +567,11 @@
         try {
           const resp = await chrome.runtime.sendMessage({
             type: 'downloadImages',
-            payload: { images: chosen, pageTitle: document.title || DEFAULT_BASE },
+            payload: {
+              images: chosen,
+              pageTitle: document.title || DEFAULT_BASE,
+              pageHost: PAGE_HOST,
+            },
           });
           if (!resp?.ok) {
             throw new Error(resp?.error || '下载失败');
@@ -594,6 +613,7 @@
             payload: {
               images: chosen,
               pageTitle: document.title || DEFAULT_BASE,
+              pageHost: PAGE_HOST,
               orientation,
             },
           });
@@ -667,6 +687,7 @@
       sendResponse({
         images: collectImages(),
         pageTitle: document.title || DEFAULT_BASE,
+        pageHost: PAGE_HOST,
       });
     }
   });

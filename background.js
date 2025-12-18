@@ -6,15 +6,27 @@ const sanitizeFileName = (text) =>
     .trim()
     .slice(0, 80) || DEFAULT_BASE;
 
-const deriveFileName = (url, fallbackBase, idx, ext = "png") => {
+const deriveFileName = (
+  url,
+  fallbackBase,
+  idx,
+  ext = "png",
+  fallbackHost = DEFAULT_BASE
+) => {
   let base = "";
+  let host = fallbackHost;
+
   try {
-    const { pathname } = new URL(url);
+    const { pathname, hostname } = new URL(url);
     base = pathname.split("/").filter(Boolean).pop() || "";
+    host = hostname || host;
   } catch {
-    base = "";
+    // ignore and use fallbacks
   }
+
+  const safeHost = sanitizeFileName(host || fallbackHost || DEFAULT_BASE);
   base = sanitizeFileName(base);
+
   if (!base) {
     const safeFallback = sanitizeFileName(fallbackBase);
     base =
@@ -22,7 +34,9 @@ const deriveFileName = (url, fallbackBase, idx, ext = "png") => {
         ? safeFallback
         : `${safeFallback}-${idx + 1}`;
   }
-  return `${DEFAULT_BASE}/${base}${base.includes(".") ? "" : `.${ext}`}`;
+
+  const file = `${base}${base.includes(".") ? "" : `.${ext}`}`;
+  return `${DEFAULT_BASE}/${safeHost}/${file}`;
 };
 
 const fetchBitmap = async (url) => {
@@ -102,8 +116,10 @@ const blobToDataUrl = (blob) =>
     reader.readAsDataURL(blob);
   });
 
-const downloadBlob = async (blob, pageTitle) => {
-  const fileName = `${DEFAULT_BASE}/${sanitizeFileName(pageTitle)}.png`;
+const downloadBlob = async (blob, pageTitle, pageHost = DEFAULT_BASE) => {
+  const fileName = `${DEFAULT_BASE}/${sanitizeFileName(
+    pageHost
+  )}/${sanitizeFileName(pageTitle)}.png`;
   let url;
 
   const canObjectUrl =
@@ -153,7 +169,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           throw new Error("未收到图片列表");
         }
         const blob = await mergeImages(payload.images, payload.orientation);
-        await downloadBlob(blob, payload.pageTitle);
+        await downloadBlob(blob, payload.pageTitle, payload.pageHost);
         sendResponse({ ok: true });
       } catch (err) {
         sendResponse({ ok: false, error: err?.message || "合成失败" });
@@ -173,7 +189,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           images.map((img, idx) =>
             chrome.downloads.download({
               url: img.src,
-              filename: deriveFileName(img.src, pageTitle, idx),
+              filename: deriveFileName(
+                img.src,
+                pageTitle,
+                idx,
+                "png",
+                payload.pageHost
+              ),
               saveAs: false
             })
           )
