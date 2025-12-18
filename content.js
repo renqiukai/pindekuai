@@ -276,6 +276,12 @@
     applyFilter();
     selected = new Set(filteredList.map((i) => i.src));
     renderList();
+    if (refs.btnSelect) {
+      refs.btnSelect.textContent =
+        selected.size === filteredList.length && filteredList.length > 0
+          ? '取消全选'
+          : '全选';
+    }
     if (filteredList.length === 0) {
       setStatus('未找到符合条件的图片', true);
     } else {
