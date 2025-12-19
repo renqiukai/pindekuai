@@ -179,7 +179,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === "downloadImages") {
-    const { images, pageTitle } = message.payload || {};
+    const { images, pageTitle, pageHost } = message.payload || {};
     (async () => {
       try {
         if (!images?.length) {
@@ -194,7 +194,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 pageTitle,
                 idx,
                 "png",
-                payload.pageHost
+                pageHost || DEFAULT_BASE
               ),
               saveAs: false
             })
